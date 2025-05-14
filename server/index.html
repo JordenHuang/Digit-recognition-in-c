@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AJAX Test</title>
+</head>
+<body>
+    <h2 id="message">Click the button</h2>
+    <button onclick="loadMessage()">Get Message</button>
+
+    <script>
+        function loadMessage() {
+            fetch('/api/message')
+                .then(res => res.text())
+                .then(data => document.getElementById('message').innerText = data);
+        }
+    </script>
+</body>
+</html>
