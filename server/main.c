@@ -1,3 +1,6 @@
+/** References
+ * - https://gi st.github.com/cellularmitosis/e4364c788dc8893b8eba76e5ad408929#file-single-threaded-c
+*/
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -111,15 +114,23 @@ int main() {
     struct sockaddr_in addr = {0};
     int port = 8989;
     addr.sin_family = AF_INET;
-    addr.sin_addr.s_addr = INADDR_ANY;
+    addr.sin_addr.s_addr = htonl(INADDR_ANY);
     addr.sin_port = htons(PORT);
 
+    int opt = 1;
+    setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+
     bind(server_fd, (struct sockaddr*)&addr, sizeof(addr));
+    if (server_fd < 0) {
+        perror("socket");
+        exit(1);
+    }
     listen(server_fd, 10);
     printf("Server started on http://localhost:%d\n", PORT);
 
     while (1) {
         int client = accept(server_fd, NULL, NULL);
+
         serve_client(client);
     }
 }
