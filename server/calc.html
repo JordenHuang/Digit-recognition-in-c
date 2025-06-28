@@ -9,18 +9,18 @@
         <button onclick="sendData()">Send</button>
         <h2 id="answer"></h2>
 
-<script>
-    function sendData() {
-        const data = { text: document.getElementById('calc').value };
-        fetch('/api/calc', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data)
-        })
-            .then(res => res.text())
-            .then(data => document.getElementById('answer').innerText = data);
+        <script>
+        function sendData() {
+            const data = { text: document.getElementById('calc').value };
+            fetch('/api/calc', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            })
+                .then(res => res.text())
+                .then(data => document.getElementById('answer').innerText = data);
 
-    }
-  </script>
+        }
+        </script>
     </body>
 </html>

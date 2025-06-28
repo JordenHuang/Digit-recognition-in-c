@@ -1,6 +1,6 @@
 CC = gcc
 CFLAGS = -O2 -Wall -Wextra
-CLIBRARY = -lpthread
+CLIBRARY = -lpthread -lm
 
 all:
 	$(CC) server.c -o server $(CLIBRARY)

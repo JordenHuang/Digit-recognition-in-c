@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Digit Recognition Drawing</title>
+        <style>
+        body {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        margin: 0;
+        background-color: #333;
+        font-family: Arial, sans-serif;
+        }
+        canvas {
+        border: 1px solid white;
+        background-color: black;
+        }
+        .controls {
+        margin-top: 20px;
+        display: flex;
+        justify-content: center;
+        gap: 20px;
+        align-items: center;
+        }
+        button {
+        padding: 10px 20px;
+        font-size: 16px;
+        background-color: #444;
+        color: white;
+        border: none;
+        cursor: pointer;
+        }
+        button:hover {
+        background-color: #666;
+        }
+        #answer {
+        color: white;
+        margin: 0 20px;
+        }
+        #output {
+        margin-top: 20px;
+        max-width: 80%;
+        background-color: #222;
+        color: white;
+        padding: 10px;
+        border-radius: 5px;
+        font-family: monospace;
+        font-size: 12px;
+        word-break: break-all;
+        max-height: 200px;
+        overflow-y: auto;
+        }
+        </style>
+    </head>
+
+    <body>
+            <h2 id="answer">Predict: </h2>
+        <canvas id="drawingCanvas" width="400" height="400"></canvas>
+        <div class="controls">
+            <button id="clearBtn">Clear</button>
+            <button id="predictBtn">Predict</button>
+        </div>
+        <!-- <div id="output"></div> -->
+
+        <script>
+        const canvas = document.getElementById('drawingCanvas');
+        const ctx = canvas.getContext('2d');
+        const clearBtn = document.getElementById('clearBtn');
+        const predictBtn = document.getElementById('predictBtn');
+
+        const canvasSize = 400;
+        let drawing = false;
+
+        canvas.addEventListener('mousedown', (e) => {
+            drawing = true;
+            ctx.beginPath();
+            ctx.moveTo(e.offsetX, e.offsetY);
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            if (drawing) {
+                ctx.lineTo(e.offsetX, e.offsetY);
+                ctx.strokeStyle = 'white';
+                ctx.lineWidth = 20;
+                ctx.lineCap = 'round';
+                ctx.stroke();
+            }
+        });
+
+        canvas.addEventListener('mouseup', () => drawing = false);
+        canvas.addEventListener('mouseout', () => drawing = false);
+
+        // Touch support
+        function getTouchPosition(e) {
+            if (e.touches && e.touches.length > 0) {
+                const rect = canvas.getBoundingClientRect();
+                return {
+                    x: e.touches[0].clientX - rect.left,
+                    y: e.touches[0].clientY - rect.top
+                };
+            } else {
+                return {
+                    x: e.offsetX,
+                    y: e.offsetY
+                };
+            }
+        }
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault(); // Prevent scrolling
+            drawing = true;
+            const pos = getTouchPosition(e);
+            ctx.beginPath();
+            ctx.moveTo(pos.x, pos.y);
+        });
+
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault(); // Prevent scrolling
+            if (!drawing) return;
+            const pos = getTouchPosition(e);
+            ctx.lineTo(pos.x, pos.y);
+            ctx.strokeStyle = 'white';
+            ctx.lineWidth = 30;
+            ctx.lineCap = 'round';
+            ctx.stroke();
+        });
+
+        canvas.addEventListener('touchend', () => drawing = false);
+
+        clearBtn.addEventListener('click', () => {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            document.getElementById('answer').innerText = 'Predict: ';
+            // document.getElementById('output').innerText = '';
+        });
+
+        function preprocessImageToMNIST(canvas) {
+            const src = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const pixels = src.data;
+
+            // Detect bounding box
+            let top = canvas.height, left = canvas.width, right = 0, bottom = 0;
+            let hasContent = false;
+
+            for (let y = 0; y < canvas.height; y++) {
+                for (let x = 0; x < canvas.width; x++) {
+                    const i = (y * canvas.width + x) * 4;
+                    const alpha = pixels[i + 3];
+                    if (alpha > 10) { // pixel drawn
+                        hasContent = true;
+                        if (x < left) left = x;
+                        if (x > right) right = x;
+                        if (y < top) top = y;
+                        if (y > bottom) bottom = y;
+                    }
+                }
+            }
+
+            // Create temporary canvas for 28x28 output
+            const tempCanvas = document.createElement('canvas');
+            const tempCtx = tempCanvas.getContext('2d');
+            tempCanvas.width = 28;
+            tempCanvas.height = 28;
+
+            // Fill background black
+            tempCtx.fillStyle = 'black';
+            tempCtx.fillRect(0, 0, 28, 28);
+
+            if (hasContent) {
+                const digitWidth = right - left + 1;
+                const digitHeight = bottom - top + 1;
+
+                // Compute scale to fit digit in 20x20 area (MNIST standard)
+                const maxSize = Math.max(digitWidth, digitHeight);
+                const scale = 20 / maxSize;
+
+                const targetWidth = digitWidth * scale;
+                const targetHeight = digitHeight * scale;
+
+                // Compute position to center it in 28x28 canvas
+                const dx = (28 - targetWidth) / 2;
+                const dy = (28 - targetHeight) / 2;
+
+                // Draw centered and scaled digit
+                tempCtx.drawImage(
+                    canvas,
+                    left, top, digitWidth, digitHeight, // source bbox
+                    dx, dy, targetWidth, targetHeight   // destination in 28x28
+                );
+            }
+
+            // Get the 28x28 image data and convert to grayscale
+            const imageData = tempCtx.getImageData(0, 0, 28, 28);
+            const data = imageData.data;
+            const grayscalePixels = [];
+
+            // Convert RGBA to grayscale (0-255 range)
+            for (let i = 0; i < data.length; i += 4) {
+                const r = data[i];
+                const g = data[i + 1];
+                const b = data[i + 2];
+                const a = data[i + 3];
+
+                // Convert to grayscale using luminance formula
+                // MNIST uses white digits on black background, so we need to preserve this
+                const grayscale = Math.round(0.299 * r + 0.587 * g + 0.114 * b);
+                grayscalePixels.push(grayscale);
+            }
+
+            return grayscalePixels;
+        }
+
+        predictBtn.addEventListener('click', () => {
+            try {
+                // Preprocess image to MNIST format
+                const mnistPixels = preprocessImageToMNIST(canvas);
+
+                // Create JSON string with space-separated pixel values
+                const pixelString = mnistPixels.join(' ');
+                const jsonOutput = JSON.stringify(pixelString);
+
+                // Display the JSON output
+                // document.getElementById('output').innerText = `JSON Output: ${jsonOutput}`;
+
+                // For demonstration, let's also show a preview of the processed image
+                console.log('MNIST-style pixel array:', mnistPixels);
+                console.log('Image dimensions: 28x28');
+                console.log('Pixel range: 0-255 (0=black, 255=white)');
+
+                // You can replace this with your actual prediction API call
+                // For now, just show that preprocessing is complete
+                // document.getElementById('answer').innerText = 'Processed!';
+
+                fetch('/api/predict', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: jsonOutput
+                })
+                    .then(res => res.text())
+                    .then(data => document.getElementById('answer').innerText = 'Predict: ' + data);
+
+
+            } catch (error) {
+                console.error('Error processing image:', error);
+                document.getElementById('answer').innerText = 'Error processing image';
+            }
+        });
+        </script>
+    </body>
+</html>
