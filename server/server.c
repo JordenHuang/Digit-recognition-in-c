@@ -8,6 +8,7 @@
 
 /*
  * TODO:
+ * - Close the worker threads
 */
 
 #include <stdio.h>
@@ -22,12 +23,14 @@
 
 #define NERUALIB_IMPLEMENTATION
 #include "../neuralib.h"
-#define MODEL_NAME "../0514_16.model"
-// #define MODEL_NAME "../0514_32.model"
-#define IMG_SIZE 784 // 28*28
 
 #define STB_IMAGE_WRITE_IMPLEMENTATION
-#include "../stb_image_write.h"
+#include "../thirdparty/stb_image_write.h"
+
+// #define MODEL_NAME "../0629_16.model"
+// #define MODEL_NAME "../0629_32.model"
+#define MODEL_NAME "../digitRecog.model"
+#define IMG_SIZE 784 // 28*28
 
 #define PORT 8989
 #define BACKLOG 10
@@ -119,7 +122,7 @@ void signal_handler(int signum) {
     // Free the memory of drawer page
     free(drawer_page);
 
-    // Free arenas
+    // Free model
     nl_model_free(model);
 
     // Terminate the program
@@ -239,22 +242,20 @@ int predict(unsigned char *img_data) {
     Mat input = nl_mat_alloc(IMG_SIZE, 1);
     Mat prediction = nl_mat_alloc(10, 1);
 
-    // Normalize pixel data
+    /* Normalize pixel data */
     for (size_t r = 0; r < (size_t)(IMG_SIZE); ++r) {
         NL_MAT_AT(input, r, 0) = (float)img_data[r] / 255.f;
         if (r % 28 == 0) printf("\n");
-        // printf("%3.0f ", (float)img_data[r]);
+        /* View client's image */
         if (img_data[r] == 0) printf(".");
         else printf("#");
     }
     printf("\n");
 
-    // printf("===== Predict\n");
     nl_model_predict(model, input, prediction);
     float maxProb = -1.f;
     int predicted_number = -1;
     for (size_t r = 0; r < prediction.rows; ++r) {
-        // printf("%f ", NL_MAT_AT(prediction, r, 0));
         if (NL_MAT_AT(prediction, r, 0) > maxProb) {
             maxProb = NL_MAT_AT(prediction, r, 0);
             predicted_number = (int)r;

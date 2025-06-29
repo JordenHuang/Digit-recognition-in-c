@@ -1,0 +1,44 @@
+> ./train.out
+[INFO] Set some parameters
+[INFO] Allocate space
+[INFO] Prepare training data
+[INFO] Normalize training data
+[INFO] Define model layer components
+[INFO] Define model layers
+--------------------
+|   Model Summary  |
+--------------------
+Input layer: 784
+--------------------
+Hidden layers:
+  64, Sigmoid
+  32, Sigmoid
+Output layer:  10, Sigmoid
+--------------------
+Loss function: Mean square error
+--------------------
+[INFO] Train
+Epoch 5/80      Cost: 0.015917
+Epoch 10/80     Cost: 0.011216
+Epoch 15/80     Cost: 0.009221
+Epoch 20/80     Cost: 0.007974
+Epoch 25/80     Cost: 0.007083
+Epoch 30/80     Cost: 0.006399
+Epoch 35/80     Cost: 0.005852
+Epoch 40/80     Cost: 0.005416
+Epoch 45/80     Cost: 0.005027
+Epoch 50/80     Cost: 0.004704
+Epoch 55/80     Cost: 0.004410
+Epoch 60/80     Cost: 0.004146
+Epoch 65/80     Cost: 0.003906
+Epoch 70/80     Cost: 0.003692
+Epoch 75/80     Cost: 0.003495
+Epoch 80/80     Cost: 0.003320
+Model [digitRecog.model] saved
+[INFO] Verify
+[INFO] Prepare testing data
+[INFO] Normalize testing data
+[INFO] Predict
+[INFO] Calculate score
+Correct count: 9601
+[INFO] Score: 96.010%

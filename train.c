@@ -4,121 +4,63 @@
 #include <stdbool.h>
 #include <dirent.h>
 
-#include "mnist_compress.c"
-
-#if 0 //{
 #define NERUALIB_IMPLEMENTATION
-#include "neuralib.h"
-
 #define STB_IMAGE_IMPLEMENTATION
-#include "stb_image.h"
+#include "mnist_squash.h"
 
-#define IMG_SIZE 784 // 28*28
-#define TRAIN_IMG_PATH "mnist_png/training/"
-#define TRAIN_IMG_COUNT 60000
-#define TEST_IMG_PATH "mnist_png/testing/"
-#define TEST_IMG_COUNT 10000
+#define MNIST_MAT_TRAIN_FILENAME "tools/mnist_train_squashed"
+#define MNIST_MAT_TEST_FILENAME  "tools/mnist_test_squashed"
 
-#define LOG(...) fprintf(stderr, __VA_ARGS__)
-
-size_t img_label_start[10];
-
-
-void load_images(const char *path, Mat train_data_arr, Mat label_arr)
-{
-    int total_count = TRAIN_IMG_COUNT;
-    int count = 0;
-    DIR *d;
-    struct dirent *dir;
-    char dir_names[][2] = {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9"};
-    size_t dir_name_len = 10;
-    char dir_path[80], img_file_path[80];
-    int w, h, n;
-    unsigned char *img_in_data;
-
-    for (size_t i = 0; i < dir_name_len; ++i) {
-        img_label_start[i] = count;
-        strcpy(dir_path, path);
-        strcat(dir_path, dir_names[i]);
-        // printf("filepath: %s\n", dir_path);
-
-        d = opendir(dir_path);
-        if (d == NULL) {
-            LOG("[ERROR] Can not open dir '%s'\n", dir_path);
-            return;
-        }
-
-        dir = readdir(d);
-        while (dir != NULL) {
-            if (dir->d_type == DT_REG) {
-                // printf("%s\n", dir->d_name);
-                // Check if snprintf return negative value, if true, some error happens
-                if (snprintf(img_file_path, 80, "%s/%s", dir_path, dir->d_name) < 0) LOG("Error happened at %d, snprintf\n", __LINE__);
-                img_in_data = stbi_load(img_file_path, &w, &h, &n, 0);
-                // printf("Loaded %s: (w, h, n) = (%d, %d, %d)\n", img_file_path, w, h, n);
-                if (n != 1) LOG("[ERROR] Expected grayscale image\n");
-                // Pixel data
-                for (size_t r = 0; r < (size_t)(w * h); ++r) {
-                    NL_MAT_AT(train_data_arr, r, count) = (float)(img_in_data[r]) / 255.f;
-                    // if (img_in_data[r] == 0) printf(" ");
-                    // else printf("#");
-                    // if (r % w == 0) printf("\n");
-                }
-                // printf("\n");
-                // Label
-                for (size_t digit = 0; digit < 10; ++digit) {
-                    NL_MAT_AT(label_arr, digit, count) = ((digit == i) ? 1 : 0);
-                }
-                count += 1;
-                stbi_image_free(img_in_data);
-            }
-            // Read next entry
-            dir = readdir(d);
-
-            printf("\rLoad count: %d", count);
-        }
-        closedir(d);
-    }
-}
-
-#endif //}
-
-int main(void)
-{
-    // printf("===== Prepare training data\n");
-    // int w, h, n;
-    // unsigned char *img_in_data = stbi_load(img_in_path, &w, &h, &n, 0);
-
-    printf("===== Set some parameters\n");
+int main(void) {
+    printf("[INFO] Set some parameters\n");
     NL_SET_ARENA_CAPACITY(512 * 1024 * 1024);
     nl_rand_init(false, 0);
-    NL_PRINT_COST_EVERY_N_EPOCHS(10);
+    NL_PRINT_COST_EVERY_N_EPOCHS(5);
 
-    printf("===== Allocate space\n");
+    printf("[INFO] Allocate space\n");
     Arena arena_x = arena_new(512 * 1024 * 1024);
-    Arena arena_y = arena_new(512 * 1024 * 1024);
-    Arena arena_train = arena_new(512 * 1024 * 1024);
-    // FIXME: y_train_labels must declare before x_train_images, but I don't know why
+    Arena arena_y = arena_new(4 * 1024 * 1024);
+    Arena arena_train = arena_new(4 * 1024 * 1024);
     Mat x_train_images = nl_mat_alloc_with_arena(&arena_x, IMG_SIZE, TRAIN_IMG_COUNT);
     Mat y_train_labels = nl_mat_alloc_with_arena(&arena_y, 10, TRAIN_IMG_COUNT);
+    int r;
 
-    printf("===== Prepare training data\n");
-    // load_images(TRAIN_IMG_PATH, x_train_images, y_train_labels);
-    load_compressed_mnist("mnist_compressed.bin", x_train_images, y_train_labels);
+// {
+#if 1
+    printf("[INFO] Prepare training data\n");
+    r = load_mnist_mat(MNIST_MAT_TRAIN_FILENAME, x_train_images, y_train_labels, true);
+    if (r < 0)
+        exit(1);
 
-    printf("===== Define model layer components\n");
+    printf("[INFO] Normalize training data\n");
+    nl_mat_mult_c(x_train_images, x_train_images, 1/255.f);
+
+    // #define RELU_AND_SOFTMAX_AND_CROSS_ENTROPY
+    #define SIGMOID_AND_MSE
+
+    printf("[INFO] Define model layer components\n");
     NeuralNet model;
+#if defined(RELU_AND_SOFTMAX_AND_CROSS_ENTROPY)
     size_t layers[] = {IMG_SIZE, 16, 16, 10};
-    Activation_type acts[] = {RELU, RELU, SOFTMAX};
-    // size_t layers[] = {IMG_SIZE, 32, 32, 10};
     // Activation_type acts[] = {RELU, RELU, SOFTMAX};
+    // size_t layers[] = {IMG_SIZE, 128, 64, 10};
+    Activation_type acts[] = {RELU, RELU, SOFTMAX};
+#elif defined(SIGMOID_AND_MSE)
+    // size_t layers[] = {IMG_SIZE, 16, 16, 10};
+    size_t layers[] = {IMG_SIZE, 64, 32, 10};
+    Activation_type acts[] = {SIGMOID, SIGMOID, SIGMOID};
+#endif
 
-    printf("===== Define model layers\n");
+    printf("[INFO] Define model layers\n");
+#if defined(RELU_AND_SOFTMAX_AND_CROSS_ENTROPY)
     nl_define_layers_with_arena(&arena_train, &model, NL_ARRAY_LEN(layers), layers, acts, CROSS_ENTROPY);
+#elif defined(SIGMOID_AND_MSE)
+    nl_define_layers_with_arena(&arena_train, &model, NL_ARRAY_LEN(layers), layers, acts, MSE);
+#endif
 
     nl_model_summary(model, stdout);
 
-    // // View the image
+    // /* View the image */
     // int offset = 2;
     // for(int c = 0; c < 10; ++c) {
     //     for (int i = 0; i < 784; ++i) {
@@ -132,39 +74,65 @@ int main(void)
     //     printf("\n\n");
     // }
 
-#if 1
-    printf("===== Shuffle training data\n");
-    Mat arr[] = {x_train_images, y_train_labels};
-    for (size_t i = 0; i < 50; ++i) nl_mat_shuffle_array(arr, 2);
-
-// for (size_t i = 0; i < TRAIN_IMG_COUNT; ++i) {
-//     size_t idx;
-//     float m = 0.f;
-//     for (size_t j = 0; j < 10; ++j) {
-//         if (NL_MAT_AT(y_train_labels, j, i) > m) {
-//             m = NL_MAT_AT(y_train_labels, j, i);
-//             idx = j;
-//         }
-//     }
-//     printf("%zu ", idx);
-// }
-    printf("===== Train\n");
-    float lr = 7e-3;
-    size_t epochs = 100;
+    printf("[INFO] Train\n");
+#if defined(RELU_AND_SOFTMAX_AND_CROSS_ENTROPY)
+    float lr = 1e-2; // 7e-2
+#elif defined(SIGMOID_AND_MSE)
+    float lr = 5e-2; // 7e-1;
+#endif
+    size_t epochs = 80;
     size_t batch_size = 10;
-    nl_model_train(model, x_train_images, y_train_labels, lr, epochs, batch_size, false);
- // nl_model_train(NeuralNet model, Mat xs, Mat ys, float lr, size_t epochs, size_t batch_size, bool shuffle)
+    nl_model_train(model, x_train_images, y_train_labels, lr, epochs, batch_size, true);
 
     // Save model
     const char model_path[] = "digitRecog.model";
     nl_model_save(model_path, model);
     printf("Model [%s] saved\n", model_path);
+
+#else  // Just load the model
+    NeuralNet model;
+    const char model_path[] = "digitRecog.model";
+    nl_model_load_with_arena(&arena_train, model_path, &model);
+
 #endif
+// }
+
+    /* Verify the model */
+    printf("[INFO] Verify\n");
+    {
+        arena_reset(&arena_x);
+        arena_reset(&arena_y);
+
+        Mat x_test_images = nl_mat_alloc_with_arena(&arena_x, IMG_SIZE, TEST_IMG_COUNT);
+        Mat y_test_labels = nl_mat_alloc_with_arena(&arena_y, 10, TEST_IMG_COUNT);
+        Mat predictions = nl_mat_alloc_with_arena(&arena_train, 10, TEST_IMG_COUNT);
+
+        Mat input_image = nl_mat_alloc_with_arena(&arena_train, IMG_SIZE, 1);
+        Mat prediction = nl_mat_alloc_with_arena(&arena_train, 10, 1);
+
+        printf("[INFO] Prepare testing data\n");
+        load_mnist_mat(MNIST_MAT_TEST_FILENAME, x_test_images, y_test_labels, true);
+
+        printf("[INFO] Normalize testing data\n");
+        nl_mat_mult_c(x_test_images, x_test_images, 1/255.f);
+
+        printf("[INFO] Predict\n");
+        for (size_t c = 0; c < TEST_IMG_COUNT; ++c) {
+            nl_mat_get_col(input_image, x_test_images, c);
+            nl_model_predict(model, input_image, prediction);
+
+            nl_mat_set_col(predictions, prediction, c);
+        }
+
+        printf("[INFO] Calculate score\n");
+        float score = nl_model_accuracy_score(y_test_labels, predictions);
+
+        printf("[INFO] Score: %.3f%%\n", score * 100);
+    }
 
     arena_destroy(arena_x);
     arena_destroy(arena_y);
     arena_destroy(arena_train);
-
 
     return 0;
 }
