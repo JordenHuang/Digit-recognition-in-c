@@ -27,9 +27,8 @@
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "../thirdparty/stb_image_write.h"
 
-// #define MODEL_NAME "../0629_16.model"
-// #define MODEL_NAME "../0629_32.model"
-#define MODEL_NAME "../digitRecog.model"
+#define MODEL_NAME "../models/0629_64.model"
+#define MODEL_NAME "../models/0629_128_SC.model"
 #define IMG_SIZE 784 // 28*28
 
 #define PORT 8989
@@ -260,6 +259,7 @@ int predict(unsigned char *img_data) {
             maxProb = NL_MAT_AT(prediction, r, 0);
             predicted_number = (int)r;
         }
+        printf("%.3f ", NL_MAT_AT(prediction, r, 0));
     }
     printf("\n");
     printf("  Predicted: %1d\n", predicted_number);
