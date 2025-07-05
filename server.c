@@ -22,15 +22,15 @@
 #include <time.h>
 
 #define NERUALIB_IMPLEMENTATION
-#include "../neuralib.h"
+#include "neuralib.h"
 
 #define STB_IMAGE_WRITE_IMPLEMENTATION
-#include "../thirdparty/stb_image_write.h"
+#include "thirdparty/stb_image_write.h"
 
-#define HTML_PAGE_NAME "drawer.html"
-
-// #define MODEL_NAME "../models/0629_64.model"
-#define MODEL_NAME "../models/0629_128_SC.model"
+#define HTML_PAGE_NAME "html/drawer.html"
+#define CLIENT_IMAGES_PATH "client_images/"
+// #define MODEL_NAME "models/0629_64.model"
+#define MODEL_NAME "models/0629_128_SC.model"
 #define IMG_SIZE 784 // 28*28
 
 #define PORT 8989
@@ -237,7 +237,7 @@ void handle_client(int client_fd) {
             time_t now = time(NULL);
             struct tm *t = localtime(&now);
             char buf[100] = {0};
-            strftime(buf, sizeof(buf), "client_images/%Y%m%d_%H%M%S.png", t);
+            strftime(buf, sizeof(buf), CLIENT_IMAGES_PATH"%Y%m%d_%H%M%S.png", t);
             printf("  Save as file: %s\n", buf);
             stbi_write_png(buf, 28, 28, 1, img_data, 28);
 
