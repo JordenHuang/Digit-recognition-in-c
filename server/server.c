@@ -27,7 +27,9 @@
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "../thirdparty/stb_image_write.h"
 
-#define MODEL_NAME "../models/0629_64.model"
+#define HTML_PAGE_NAME "drawer.html"
+
+// #define MODEL_NAME "../models/0629_64.model"
 #define MODEL_NAME "../models/0629_128_SC.model"
 #define IMG_SIZE 784 // 28*28
 
@@ -58,7 +60,7 @@ int enqueue(int client_fd);
 int dequeue(void);
 int is_queue_empty();
 void handle_client(int client_fd);
-int predict(unsigned char *img_data);
+void predict(unsigned char *img_data, int *predict_num, float *result_probs);
 
 
 int main(void) {
@@ -131,7 +133,7 @@ void signal_handler(int signum) {
 void init_resources() {
     // Drawer page
     printf("Load page resource...\n");
-    FILE *fptr = fopen("drawer.html", "r");
+    FILE *fptr = fopen(HTML_PAGE_NAME, "r");
     fseek(fptr, 0, SEEK_END);
     drawer_page_lengh = ftell(fptr);
     rewind(fptr);
@@ -206,7 +208,30 @@ void handle_client(int client_fd) {
             }
 
             // Predict
-            int predict_num = predict(img_data);
+            int predict_num;
+            float probs[10] = {0};
+            predict(img_data, &predict_num, probs);
+
+            // Prepare JSON string
+            char json_str[1024] = {0};
+
+#define JSON_STR_FORMAT "{"                                                           \
+    "\"prediction\": %d,"                                                             \
+    "\"probabilities\": [%.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f]" \
+    "}"
+            sprintf(json_str, JSON_STR_FORMAT,
+                    predict_num,
+                    probs[0],
+                    probs[1],
+                    probs[2],
+                    probs[3],
+                    probs[4],
+                    probs[5],
+                    probs[6],
+                    probs[7],
+                    probs[8],
+                    probs[9]
+                    );
 
             // Write to a file
             time_t now = time(NULL);
@@ -219,7 +244,8 @@ void handle_client(int client_fd) {
             // Return a response
             char response[1024];
             sprintf(response,  "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n");
-            sprintf(response,  "%s%d", response, predict_num);
+            // sprintf(response,  "%s%d", response, predict_num);
+            sprintf(response,  "%s%s", response, json_str);
             write(client_fd, response, strlen(response));
         }
     }
@@ -237,7 +263,7 @@ void handle_client(int client_fd) {
     close(client_fd);
 }
 
-int predict(unsigned char *img_data) {
+void predict(unsigned char *img_data, int *predict_num, float *result_probs) {
     Mat input = nl_mat_alloc(IMG_SIZE, 1);
     Mat prediction = nl_mat_alloc(10, 1);
 
@@ -260,11 +286,13 @@ int predict(unsigned char *img_data) {
             predicted_number = (int)r;
         }
         printf("%.3f ", NL_MAT_AT(prediction, r, 0));
+        result_probs[r] = NL_MAT_AT(prediction, r, 0);
     }
     printf("\n");
     printf("  Predicted: %1d\n", predicted_number);
 
+    *predict_num = predicted_number;
+
     nl_mat_free(input);
     nl_mat_free(prediction);
-    return predicted_number;
 }

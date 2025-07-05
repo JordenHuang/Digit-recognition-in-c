@@ -10,15 +10,34 @@
         flex-direction: column;
         justify-content: center;
         align-items: center;
-        height: 100vh;
+        min-height: 100vh;
         margin: 0;
         background-color: #333;
         font-family: Arial, sans-serif;
+        padding: 20px;
+        box-sizing: border-box;
         }
+        
+        .main-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        width: 100%;
+        max-width: 1200px;
+        }
+        
+        .canvas-section {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        margin-bottom: 30px;
+        }
+        
         canvas {
         border: 1px solid white;
         background-color: black;
         }
+        
         .controls {
         margin-top: 20px;
         display: flex;
@@ -26,6 +45,7 @@
         gap: 20px;
         align-items: center;
         }
+        
         button {
         padding: 10px 20px;
         font-size: 16px;
@@ -33,44 +53,214 @@
         color: white;
         border: none;
         cursor: pointer;
+        border-radius: 5px;
+        transition: background-color 0.3s;
         }
+        
         button:hover {
         background-color: #666;
         }
+        
         #answer {
         color: white;
         margin: 0 20px;
+        font-size: 18px;
+        font-weight: bold;
         }
-        #output {
-        margin-top: 20px;
-        max-width: 80%;
+        
+        .chart-container {
+        width: 100%;
+        max-width: 600px;
         background-color: #222;
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 30px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+        
+        .chart-title {
         color: white;
+        text-align: center;
+        margin-bottom: 20px;
+        font-size: 18px;
+        font-weight: bold;
+        }
+        
+        .chart {
+        display: flex;
+        align-items: end;
+        justify-content: space-between;
+        height: 200px;
+        background-color: #1a1a1a;
+        border-radius: 8px;
         padding: 10px;
+        margin-bottom: 10px;
+        }
+        
+        .bar-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        flex: 1;
+        margin: 0 2px;
+        }
+        
+        .bar {
+        width: 100%;
+        max-width: 40px;
+        background: linear-gradient(to top, #4ea1ff, #74c0fc);
+        border-radius: 3px 3px 0 0;
+        transition: all 0.3s ease;
+        min-height: 2px;
+        margin-bottom: 5px;
+        }
+        
+        .bar.max {
+        background: linear-gradient(to top, #ff6b6b, #ff8787);
+        }
+        
+        .bar-label {
+        color: white;
+        font-size: 14px;
+        font-weight: bold;
+        margin-bottom: 5px;
+        }
+        
+        .bar-value {
+        color: #ccc;
+        font-size: 11px;
+        text-align: center;
+        min-height: 15px;
+        }
+        
+        .info {
+        max-width: 600px;
+        padding: 20px;
+        background-color: rgba(20, 20, 20, 0.7);
+        border-radius: 10px;
+        color: #d8d8d8;
+        font-size: 14px;
+        line-height: 150%;
+        text-align: center;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+        }
+
+        .info h2 {
+        margin: 0;
+        }
+
+        .info a {
+        color: #4ea1ff;
+        text-decoration: none;
+        }
+        .info a:hover {
+        text-decoration: underline;
+        }
+
+        #toggleLangBtn {
+        margin-top: 10px;
+        padding: 8px 16px;
+        background-color: #444;
+        color: white;
+        border: none;
         border-radius: 5px;
-        font-family: monospace;
+        font-size: 13px;
+        cursor: pointer;
+        }
+        #toggleLangBtn:hover {
+        background-color: #666;
+        }
+        
+        .loading {
+        color: #4ea1ff;
+        }
+        
+        @media (max-width: 768px) {
+        .canvas-section canvas {
+        width: 300px;
+        height: 300px;
+        }
+        
+        .chart-container {
+        max-width: 90%;
+        }
+        
+        .bar-label {
         font-size: 12px;
-        word-break: break-all;
-        max-height: 200px;
-        overflow-y: auto;
+        }
+        
+        .bar-value {
+        font-size: 10px;
+        }
         }
         </style>
     </head>
 
     <body>
-            <h2 id="answer">Predict: </h2>
-        <canvas id="drawingCanvas" width="400" height="400"></canvas>
-        <div class="controls">
-            <button id="clearBtn">Clear</button>
-            <button id="predictBtn">Predict</button>
+        <div class="main-container">
+            <div class="canvas-section">
+                <h2 id="answer">Predict: </h2>
+                <canvas id="drawingCanvas" width="400" height="400"></canvas>
+                <div class="controls">
+                    <button id="clearBtn">Clear</button>
+                    <button id="predictBtn">Predict</button>
+                </div>
+            </div>
+            
+            <div class="chart-container" id="chartContainer" style="display: none;">
+                <div class="chart-title">Digit Probabilities</div>
+                <div class="chart" id="probabilityChart">
+                    <!-- Bars will be generated here -->
+                </div>
+            </div>
+
+            <!-- Info and GitHub link -->
+            <div class="info" id="infoBox">
+                <h2>Description</h2>
+                <p id="description">
+                    Draw a digit (0–9) above. This app will do some preprocess on the digit image,
+                    and send to the server to predict the digit.
+                    The project's backend contains a custom neural network written in C and a
+                    server. The model is trained on the MNIST dataset.
+                </p>
+                <p>
+                    Source Code:
+                    <a href="https://https://github.com/JordenHuang/Digit-recognition-in-c" target="_blank" rel="noopener noreferrer">
+                        GitHub Repository
+                    </a>
+                </p>
+                <button id="toggleLangBtn">切換語言</button>
+            </div>
         </div>
-        <!-- <div id="output"></div> -->
 
         <script>
+        const descEN = `
+Draw a digit (0–9) above. This app will do some preprocess on the digit image,
+and send to the server to predict the digit.
+The project's backend contains a custom neural network written in C and a
+server. The model is trained on the MNIST dataset.
+`;
+        const descZH = `
+在上方寫下一個數字（0～9），此程式會將數字圖片進行前處理後送至後端 server
+進行數字預測。<br> 本專案後端部分由以 C 語言實作的神經網路模型和後端伺服器組成，模型使用了 MNIST 數據集來訓練。
+`;
+
+        const toggleBtn = document.getElementById('toggleLangBtn');
+        const descBox = document.getElementById('description');
+        let isZH = false;
+
+        toggleBtn.addEventListener('click', () => {
+            isZH = !isZH;
+            descBox.innerHTML = isZH ? descZH : descEN;
+            toggleBtn.textContent = isZH ? 'Switch language' : '切換語言';
+        });
+
         const canvas = document.getElementById('drawingCanvas');
         const ctx = canvas.getContext('2d');
         const clearBtn = document.getElementById('clearBtn');
         const predictBtn = document.getElementById('predictBtn');
+        const chartContainer = document.getElementById('chartContainer');
+        const probabilityChart = document.getElementById('probabilityChart');
 
         const canvasSize = 400;
         let drawing = false;
@@ -109,8 +299,9 @@
                 };
             }
         }
+        
         canvas.addEventListener('touchstart', (e) => {
-            e.preventDefault(); // Prevent scrolling
+            e.preventDefault();
             drawing = true;
             const pos = getTouchPosition(e);
             ctx.beginPath();
@@ -118,7 +309,7 @@
         });
 
         canvas.addEventListener('touchmove', (e) => {
-            e.preventDefault(); // Prevent scrolling
+            e.preventDefault();
             if (!drawing) return;
             const pos = getTouchPosition(e);
             ctx.lineTo(pos.x, pos.y);
@@ -133,14 +324,52 @@
         clearBtn.addEventListener('click', () => {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             document.getElementById('answer').innerText = 'Predict: ';
-            // document.getElementById('output').innerText = '';
+            chartContainer.style.display = 'none';
         });
+
+        function createProbabilityChart(probabilities) {
+            probabilityChart.innerHTML = '';
+            
+            if (!probabilities || probabilities.length !== 10) {
+                console.error('Invalid probabilities array');
+                return;
+            }
+
+            const maxProb = Math.max(...probabilities);
+            const maxBarHeight = 160; // Maximum height of bars in pixels
+
+            for (let i = 0; i < 10; i++) {
+                const barContainer = document.createElement('div');
+                barContainer.className = 'bar-container';
+
+                const barLabel = document.createElement('div');
+                barLabel.className = 'bar-label';
+                barLabel.textContent = i.toString();
+
+                const bar = document.createElement('div');
+                bar.className = 'bar';
+                if (probabilities[i] === maxProb) {
+                    bar.classList.add('max');
+                }
+                
+                const barHeight = Math.max(2, (probabilities[i] / Math.max(maxProb, 0.01)) * maxBarHeight);
+                bar.style.height = `${barHeight}px`;
+
+                const barValue = document.createElement('div');
+                barValue.className = 'bar-value';
+                barValue.textContent = `${(probabilities[i] * 100).toFixed(1)}%`;
+
+                barContainer.appendChild(barLabel);
+                barContainer.appendChild(bar);
+                barContainer.appendChild(barValue);
+                probabilityChart.appendChild(barContainer);
+            }
+        }
 
         function preprocessImageToMNIST(canvas) {
             const src = ctx.getImageData(0, 0, canvas.width, canvas.height);
             const pixels = src.data;
 
-            // Detect bounding box
             let top = canvas.height, left = canvas.width, right = 0, bottom = 0;
             let hasContent = false;
 
@@ -148,7 +377,7 @@
                 for (let x = 0; x < canvas.width; x++) {
                     const i = (y * canvas.width + x) * 4;
                     const alpha = pixels[i + 3];
-                    if (alpha > 10) { // pixel drawn
+                    if (alpha > 10) {
                         hasContent = true;
                         if (x < left) left = x;
                         if (x > right) right = x;
@@ -158,53 +387,39 @@
                 }
             }
 
-            // Create temporary canvas for 28x28 output
             const tempCanvas = document.createElement('canvas');
             const tempCtx = tempCanvas.getContext('2d');
             tempCanvas.width = 28;
             tempCanvas.height = 28;
 
-            // Fill background black
             tempCtx.fillStyle = 'black';
             tempCtx.fillRect(0, 0, 28, 28);
 
             if (hasContent) {
                 const digitWidth = right - left + 1;
                 const digitHeight = bottom - top + 1;
-
-                // Compute scale to fit digit in 20x20 area (MNIST standard)
                 const maxSize = Math.max(digitWidth, digitHeight);
                 const scale = 20 / maxSize;
-
                 const targetWidth = digitWidth * scale;
                 const targetHeight = digitHeight * scale;
-
-                // Compute position to center it in 28x28 canvas
                 const dx = (28 - targetWidth) / 2;
                 const dy = (28 - targetHeight) / 2;
 
-                // Draw centered and scaled digit
                 tempCtx.drawImage(
                     canvas,
-                    left, top, digitWidth, digitHeight, // source bbox
-                    dx, dy, targetWidth, targetHeight   // destination in 28x28
+                    left, top, digitWidth, digitHeight,
+                    dx, dy, targetWidth, targetHeight
                 );
             }
 
-            // Get the 28x28 image data and convert to grayscale
             const imageData = tempCtx.getImageData(0, 0, 28, 28);
             const data = imageData.data;
             const grayscalePixels = [];
 
-            // Convert RGBA to grayscale (0-255 range)
             for (let i = 0; i < data.length; i += 4) {
                 const r = data[i];
                 const g = data[i + 1];
                 const b = data[i + 2];
-                const a = data[i + 3];
-
-                // Convert to grayscale using luminance formula
-                // MNIST uses white digits on black background, so we need to preserve this
                 const grayscale = Math.round(0.299 * r + 0.587 * g + 0.114 * b);
                 grayscalePixels.push(grayscale);
             }
@@ -214,33 +429,45 @@
 
         predictBtn.addEventListener('click', () => {
             try {
-                // Preprocess image to MNIST format
                 const mnistPixels = preprocessImageToMNIST(canvas);
-
-                // Create JSON string with space-separated pixel values
                 const pixelString = mnistPixels.join(' ');
                 const jsonOutput = JSON.stringify(pixelString);
 
-                // Display the JSON output
-                // document.getElementById('output').innerText = `JSON Output: ${jsonOutput}`;
-
-                // For demonstration, let's also show a preview of the processed image
-                console.log('MNIST-style pixel array:', mnistPixels);
-                console.log('Image dimensions: 28x28');
-                console.log('Pixel range: 0-255 (0=black, 255=white)');
-
-                // You can replace this with your actual prediction API call
-                // For now, just show that preprocessing is complete
-                // document.getElementById('answer').innerText = 'Processed!';
+                document.getElementById('answer').innerText = 'Predict: ';
+                document.getElementById('answer').className = 'loading';
 
                 fetch('/api/predict', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: jsonOutput
                 })
-                    .then(res => res.text())
-                    .then(data => document.getElementById('answer').innerText = 'Predict: ' + data);
-
+                .then(res => res.json())
+                .then(data => {
+                    document.getElementById('answer').className = '';
+                    
+                    if (data.prediction !== undefined) {
+                        document.getElementById('answer').innerText = `Predict: ${data.prediction}`;
+                        
+                        if (data.probabilities && Array.isArray(data.probabilities)) {
+                            createProbabilityChart(data.probabilities);
+                            chartContainer.style.display = 'block';
+                        }
+                    } else if (data.probabilities && Array.isArray(data.probabilities)) {
+                        // If only probabilities are provided, find the max index
+                        const maxIndex = data.probabilities.indexOf(Math.max(...data.probabilities));
+                        document.getElementById('answer').innerText = `Predict: ${maxIndex}`;
+                        createProbabilityChart(data.probabilities);
+                        chartContainer.style.display = 'block';
+                    } else {
+                        // Fallback for simple text response
+                        document.getElementById('answer').innerText = 'Predict: ' + data;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    document.getElementById('answer').className = '';
+                    document.getElementById('answer').innerText = 'Error: Unable to predict';
+                });
 
             } catch (error) {
                 console.error('Error processing image:', error);
