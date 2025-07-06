@@ -288,9 +288,12 @@ server. The model is trained on the MNIST dataset.
         function getTouchPosition(e) {
             if (e.touches && e.touches.length > 0) {
                 const rect = canvas.getBoundingClientRect();
+                const scaleX = canvas.width / rect.width;
+                const scaleY = canvas.height / rect.height;
+                
                 return {
-                    x: e.touches[0].clientX - rect.left,
-                    y: e.touches[0].clientY - rect.top
+                    x: (e.touches[0].clientX - rect.left) * scaleX,
+                    y: (e.touches[0].clientY - rect.top) * scaleY
                 };
             } else {
                 return {
@@ -299,7 +302,7 @@ server. The model is trained on the MNIST dataset.
                 };
             }
         }
-        
+
         canvas.addEventListener('touchstart', (e) => {
             e.preventDefault();
             drawing = true;
