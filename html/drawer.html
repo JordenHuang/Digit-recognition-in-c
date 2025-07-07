@@ -200,7 +200,7 @@
         <div class="main-container">
             <div class="canvas-section">
                 <h2 id="answer">Predict: </h2>
-                <canvas id="drawingCanvas" width="400" height="400"></canvas>
+                <canvas id="drawingCanvas" width="280" height="280"></canvas>
                 <div class="controls">
                     <button id="clearBtn">Clear</button>
                     <button id="predictBtn">Predict</button>
@@ -262,7 +262,7 @@ server. The model is trained on the MNIST dataset.
         const chartContainer = document.getElementById('chartContainer');
         const probabilityChart = document.getElementById('probabilityChart');
 
-        const canvasSize = 400;
+        const canvasSize = 280;
         let drawing = false;
 
         canvas.addEventListener('mousedown', (e) => {
@@ -317,7 +317,7 @@ server. The model is trained on the MNIST dataset.
             const pos = getTouchPosition(e);
             ctx.lineTo(pos.x, pos.y);
             ctx.strokeStyle = 'white';
-            ctx.lineWidth = 30;
+            ctx.lineWidth = 20;
             ctx.lineCap = 'round';
             ctx.stroke();
         });
@@ -327,7 +327,7 @@ server. The model is trained on the MNIST dataset.
         clearBtn.addEventListener('click', () => {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             document.getElementById('answer').innerText = 'Predict: ';
-            chartContainer.style.display = 'none';
+            // chartContainer.style.display = 'none';
         });
 
         function createProbabilityChart(probabilities) {
@@ -373,6 +373,7 @@ server. The model is trained on the MNIST dataset.
             const src = ctx.getImageData(0, 0, canvas.width, canvas.height);
             const pixels = src.data;
 
+            // 1. Find bounding box of non-black pixels
             let top = canvas.height, left = canvas.width, right = 0, bottom = 0;
             let hasContent = false;
 
@@ -390,11 +391,12 @@ server. The model is trained on the MNIST dataset.
                 }
             }
 
+            // 2. Draw to 28x28 canvas
             const tempCanvas = document.createElement('canvas');
             const tempCtx = tempCanvas.getContext('2d');
             tempCanvas.width = 28;
             tempCanvas.height = 28;
-
+            tempCtx.imageSmoothingEnabled = false
             tempCtx.fillStyle = 'black';
             tempCtx.fillRect(0, 0, 28, 28);
 
@@ -415,6 +417,7 @@ server. The model is trained on the MNIST dataset.
                 );
             }
 
+            // 3. Read image and compute grayscale values
             const imageData = tempCtx.getImageData(0, 0, 28, 28);
             const data = imageData.data;
             const grayscalePixels = [];
@@ -427,7 +430,47 @@ server. The model is trained on the MNIST dataset.
                 grayscalePixels.push(grayscale);
             }
 
-            return grayscalePixels;
+            // 4. Compute center of mass
+            let total = 0, sumX = 0, sumY = 0;
+            for (let y = 0; y < 28; y++) {
+                for (let x = 0; x < 28; x++) {
+                    const val = grayscalePixels[y * 28 + x];
+                    total += val;
+                    sumX += x * val;
+                    sumY += y * val;
+                }
+            }
+
+            let shiftX = 0, shiftY = 0;
+            if (total > 0) {
+                const centerX = sumX / total;
+                const centerY = sumY / total;
+                shiftX = Math.round(14 - centerX);
+                shiftY = Math.round(14 - centerY);
+            }
+
+            // 5. Create final shifted canvas
+            const shifted = document.createElement('canvas');
+            const shiftedCtx = shifted.getContext('2d');
+            shifted.width = 28;
+            shifted.height = 28;
+            shiftedCtx.fillStyle = 'black';
+            shiftedCtx.imageSmoothingEnabled = false
+            shiftedCtx.fillRect(0, 0, 28, 28);
+            shiftedCtx.drawImage(tempCanvas, shiftX, shiftY);
+
+            // 6. Get grayscale from final canvas
+            const finalData = shiftedCtx.getImageData(0, 0, 28, 28).data;
+            const finalGrayscale = [];
+            for (let i = 0; i < finalData.length; i += 4) {
+                const r = finalData[i];
+                const g = finalData[i + 1];
+                const b = finalData[i + 2];
+                const grayscale = Math.round(0.299 * r + 0.587 * g + 0.114 * b);
+                finalGrayscale.push(grayscale);
+            }
+
+            return finalGrayscale;
         }
 
         predictBtn.addEventListener('click', () => {

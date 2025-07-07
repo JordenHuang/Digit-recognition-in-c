@@ -29,8 +29,7 @@
 
 #define HTML_PAGE_NAME "html/drawer.html"
 #define CLIENT_IMAGES_PATH "client_images/"
-// #define MODEL_NAME "models/0629_64.model"
-#define MODEL_NAME "models/0629_128_SC.model"
+#define MODEL_NAME "models/0707_64_SC.model"
 #define IMG_SIZE 784 // 28*28
 
 #define PORT 8989

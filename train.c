@@ -35,15 +35,16 @@ int main(void) {
     printf("[INFO] Normalize training data\n");
     nl_mat_mult_c(x_train_images, x_train_images, 1/255.f);
 
-    // #define RELU_AND_SOFTMAX_AND_CROSS_ENTROPY
-    #define SIGMOID_AND_MSE
+    #define RELU_AND_SOFTMAX_AND_CROSS_ENTROPY
+    // #define SIGMOID_AND_MSE
 
     printf("[INFO] Define model layer components\n");
     NeuralNet model;
 #if defined(RELU_AND_SOFTMAX_AND_CROSS_ENTROPY)
-    size_t layers[] = {IMG_SIZE, 16, 16, 10};
+    // size_t layers[] = {IMG_SIZE, 16, 16, 10};
     // Activation_type acts[] = {RELU, RELU, SOFTMAX};
     // size_t layers[] = {IMG_SIZE, 128, 64, 10};
+    size_t layers[] = {IMG_SIZE, 64, 32, 10};
     Activation_type acts[] = {RELU, RELU, SOFTMAX};
 #elif defined(SIGMOID_AND_MSE)
     // size_t layers[] = {IMG_SIZE, 16, 16, 10};
@@ -76,7 +77,7 @@ int main(void) {
 
     printf("[INFO] Train\n");
 #if defined(RELU_AND_SOFTMAX_AND_CROSS_ENTROPY)
-    float lr = 1e-2; // 7e-2
+    float lr = 5e-2; // 7e-2
 #elif defined(SIGMOID_AND_MSE)
     float lr = 5e-2; // 7e-1;
 #endif
